@@ -1,0 +1,379 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Love Bubbles</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@600;700&display=swap" rel="stylesheet">
+    <style>
+        /* Base styling and font */
+        body {
+            font-family: 'Nunito', sans-serif;
+            margin: 0;
+            padding: 0;
+            overflow: hidden; /* Prevent scrolling */
+            /* Soft yellow gradient for sunflower theme */
+            background: linear-gradient(135deg, #fefce8 0%, #fef08a 50%, #fde047 100%);
+            height: 100vh;
+            width: 100vw;
+            touch-action: none; /* Prevent browser handling of gestures for smoother tapping */
+        }
+
+        /* Huge translucent background sunflower */
+        .bg-sunflower {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: min(80vw, 80vh); /* Scaled relative to viewport */
+            opacity: 0.15;
+            z-index: 1;
+            pointer-events: none; /* Let clicks pass through */
+            user-select: none;
+            filter: grayscale(20%) saturate(150%);
+        }
+
+        /* Walking Elephant */
+        .walking-elephant {
+            position: absolute;
+            bottom: 2vh;
+            font-size: 3rem;
+            opacity: 0.4;
+            z-index: 5;
+            pointer-events: none;
+            animation: walkRight 15s linear infinite;
+        }
+
+        @keyframes walkRight {
+            0% { left: -15%; transform: scaleX(1); }
+            100% { left: 115%; transform: scaleX(1); }
+        }
+
+        /* Container for bubbles */
+        #bubble-container {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none; /* Let clicks pass through empty space */
+            z-index: 10;
+        }
+
+        /* Bubble styles - simple and empty */
+        .bubble {
+            position: absolute;
+            bottom: -100px;
+            border-radius: 50%;
+            /* Soft glass-like bubble appearance */
+            background: radial-gradient(circle at 30% 30%, rgba(255, 255, 255, 0.9), rgba(255, 255, 255, 0.2) 60%, rgba(254, 240, 138, 0.4) 100%);
+            box-shadow: 
+                inset 0 0 15px rgba(255, 255, 255, 0.8),
+                0 4px 10px rgba(253, 224, 71, 0.2);
+            border: 1px solid rgba(255, 255, 255, 0.7);
+            pointer-events: auto; /* Enable clicking on bubbles */
+            cursor: pointer;
+            -webkit-tap-highlight-color: transparent; /* Remove tap blue box on mobile */
+            transition: transform 0.1s ease-out;
+        }
+
+        /* Float and Sway animations */
+        @keyframes floatUp {
+            0% { bottom: -100px; opacity: 0; }
+            5% { opacity: 1; }
+            95% { opacity: 1; }
+            100% { bottom: 110vh; opacity: 0; }
+        }
+
+        @keyframes sway {
+            0%, 100% { transform: translateX(0); }
+            50% { transform: translateX(35px); }
+        }
+
+        /* Pop animation */
+        .pop {
+            animation: popAnim 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards !important;
+            pointer-events: none; /* Disable clicking while popping */
+        }
+
+        @keyframes popAnim {
+            0% { transform: scale(1); opacity: 1; }
+            50% { transform: scale(1.3); opacity: 0.8; }
+            100% { transform: scale(0); opacity: 0; }
+        }
+
+        /* Message Display Overlay */
+        #message-display {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%) scale(0.95);
+            width: 90%;
+            max-width: 400px;
+            text-align: center;
+            z-index: 20;
+            opacity: 0;
+            visibility: hidden;
+            pointer-events: none;
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        #message-display.show {
+            opacity: 1;
+            visibility: visible;
+            transform: translate(-50%, -50%) scale(1);
+        }
+
+        /* Glassmorphism card for the message */
+        .glass-card {
+            background: rgba(255, 255, 255, 0.7);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.9);
+            box-shadow: 0 10px 40px 0 rgba(234, 179, 8, 0.15);
+            border-radius: 24px;
+            padding: 2.5rem 1.5rem;
+        }
+
+        /* Call to action text that fades out */
+        #cta-text {
+            position: absolute;
+            bottom: 20vh;
+            width: 100%;
+            text-align: center;
+            color: rgba(161, 98, 7, 0.6);
+            font-size: 1.1rem;
+            z-index: 15;
+            pointer-events: none;
+            transition: opacity 1s;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Background Elements -->
+    <div class="bg-sunflower">🌻</div>
+    <div class="walking-elephant">🐘</div>
+
+    <!-- Bubbles Container -->
+    <div id="bubble-container"></div>
+
+    <!-- Hint text that will disappear -->
+    <div id="cta-text">Tap anywhere to begin</div>
+
+    <!-- Message Overlay -->
+    <div id="message-display">
+        <div class="glass-card">
+            <h1 id="message-text" class="text-2xl sm:text-3xl font-bold text-yellow-900 leading-tight">
+                <!-- Message will appear here -->
+            </h1>
+        </div>
+    </div>
+
+    <script>
+        // --- DATA ---
+        const messages = [
+            "I luvuuuuu kanna ❤️",
+            "Bike ride pe leke jayega mein 🏍️",
+            "You are my sunshine ☀️",
+            "Cuddles loading... 🫂",
+            "Tose naina lage  🎶",
+            "12 minutes hug dega 😊",
+            "Sending you a big warm hug 🤗",
+            "Miss you tons! 😘",
+            "Chai peene chale banglore ke tarah? ☕",
+            "Thai food khaane hai teko ?✨",
+            "Misal paav khayega ? 💭",
+            "My muddhuuu ❤️",
+            "Half dozen kissie dega mein! 🍦"
+        ];
+
+        // --- DOM ELEMENTS ---
+        const bubbleContainer = document.getElementById('bubble-container');
+        const messageDisplay = document.getElementById('message-display');
+        const messageText = document.getElementById('message-text');
+        const ctaText = document.getElementById('cta-text');
+        
+        let messageTimeout;
+        let isFirstMessage = true;
+
+        // --- AUDIO SYSTEM (Web Audio API) ---
+        let audioCtx;
+        let ambientPlaying = false;
+
+        function initAudio() {
+            if (audioCtx) return;
+            // Initialize Audio Context on user interaction
+            const AudioContext = window.AudioContext || window.webkitAudioContext;
+            audioCtx = new AudioContext();
+            startAmbientMusic();
+            ctaText.style.opacity = '0'; // Hide the prompt
+        }
+
+        // Play a satisfying 'pop' sound
+        function playPopSound() {
+            if (!audioCtx || audioCtx.state === 'suspended') return;
+            
+            const osc = audioCtx.createOscillator();
+            const gainNode = audioCtx.createGain();
+            
+            osc.connect(gainNode);
+            gainNode.connect(audioCtx.destination);
+            
+            // Pop sound characteristics
+            osc.type = 'sine';
+            const now = audioCtx.currentTime;
+            
+            // Frequency drops rapidly from high to low
+            osc.frequency.setValueAtTime(600, now);
+            osc.frequency.exponentialRampToValueAtTime(100, now + 0.1);
+            
+            // Volume spikes and fades instantly
+            gainNode.gain.setValueAtTime(0, now);
+            gainNode.gain.linearRampToValueAtTime(0.5, now + 0.01); // attack
+            gainNode.gain.exponentialRampToValueAtTime(0.01, now + 0.1); // release
+            
+            osc.start(now);
+            osc.stop(now + 0.15);
+        }
+
+        // Play gentle looping ambient chords
+        function startAmbientMusic() {
+            if (ambientPlaying || !audioCtx) return;
+            ambientPlaying = true;
+            
+            // Simple relaxing chord progression frequencies (Cmaj7, Fmaj7) lowered 2 octaves
+            const chords = [
+                [65.41, 82.41, 98.00], // C, E, G
+                [87.31, 110.00, 130.81] // F, A, C
+            ];
+            let currentChordIndex = 0;
+
+            function playChord() {
+                const now = audioCtx.currentTime;
+                const chord = chords[currentChordIndex];
+                
+                chord.forEach(freq => {
+                    const osc = audioCtx.createOscillator();
+                    const gain = audioCtx.createGain();
+                    
+                    osc.connect(gain);
+                    gain.connect(audioCtx.destination);
+                    
+                    osc.type = 'sine';
+                    osc.frequency.value = freq;
+                    
+                    // Very soft ambient swell (Attack, Sustain, Release)
+                    gain.gain.setValueAtTime(0, now);
+                    gain.gain.linearRampToValueAtTime(0.08, now + 2); // 2 sec fade in
+                    gain.gain.setValueAtTime(0.08, now + 4); // sustain for 2 sec
+                    gain.gain.linearRampToValueAtTime(0, now + 6); // 2 sec fade out
+                    
+                    osc.start(now);
+                    osc.stop(now + 6);
+                });
+                
+                currentChordIndex = (currentChordIndex + 1) % chords.length;
+            }
+            
+            // Play initial chord and loop
+            playChord();
+            setInterval(playChord, 6000); // Play new chord every 6 seconds
+        }
+
+        // Initialize audio on first click/tap anywhere on the screen
+        document.body.addEventListener('pointerdown', initAudio, { once: true });
+
+
+        // --- BUBBLE & MESSAGE LOGIC ---
+        function createBubble() {
+            const bubble = document.createElement('div');
+            bubble.classList.add('bubble');
+
+            // Randomize size
+            const size = Math.random() * 35 + 50; // 50px to 85px
+            bubble.style.width = `${size}px`;
+            bubble.style.height = `${size}px`;
+
+            // Random horizontal position (5vw to 85vw to keep inside screen)
+            const leftPos = Math.random() * 80 + 5;
+            bubble.style.left = `${leftPos}vw`;
+
+            // Randomize animation durations
+            const floatDuration = Math.random() * 4 + 7; // 7s to 11s
+            const swayDuration = Math.random() * 2 + 2.5;  // 2.5s to 4.5s
+            
+            bubble.style.animation = `
+                floatUp ${floatDuration}s linear forwards,
+                sway ${swayDuration}s ease-in-out infinite alternate
+            `;
+
+            // Pop interaction
+            const popBubble = (e) => {
+                e.preventDefault(); 
+                
+                // Ensure audio initialized if they tapped a bubble right away
+                if (!audioCtx) initAudio(); 
+                
+                if (bubble.classList.contains('pop')) return;
+
+                bubble.classList.add('pop');
+                bubble.style.animationPlayState = 'paused'; 
+                
+                playPopSound();
+                showRandomMessage();
+
+                setTimeout(() => {
+                    if (bubble.parentNode) bubble.parentNode.removeChild(bubble);
+                }, 250); 
+            };
+
+            // pointerdown handles touch and mouse seamlessly on mobile
+            bubble.addEventListener('pointerdown', popBubble); 
+
+            // Auto-cleanup off screen
+            setTimeout(() => {
+                if (bubble.parentNode && !bubble.classList.contains('pop')) {
+                    bubble.parentNode.removeChild(bubble);
+                }
+            }, floatDuration * 1000);
+
+            bubbleContainer.appendChild(bubble);
+        }
+
+        function showRandomMessage() {
+            if (messageTimeout) clearTimeout(messageTimeout);
+
+            const randomMsg = messages[Math.floor(Math.random() * messages.length)];
+            
+            if (!isFirstMessage) {
+                messageText.style.opacity = 0;
+                setTimeout(() => {
+                    messageText.innerHTML = randomMsg;
+                    messageText.style.opacity = 1;
+                    messageText.style.transition = 'opacity 0.2s';
+                }, 150);
+            } else {
+                messageText.innerHTML = randomMsg;
+                isFirstMessage = false;
+            }
+
+            messageDisplay.classList.add('show');
+
+            messageTimeout = setTimeout(() => {
+                messageDisplay.classList.remove('show');
+                setTimeout(() => { isFirstMessage = true; }, 400); 
+            }, 3500);
+        }
+
+        // Generate bubbles loop
+        setInterval(createBubble, 800);
+
+        // Initial burst
+        for(let i = 0; i < 5; i++){
+            setTimeout(createBubble, i * 400);
+        }
+    </script>
+</body>
+</html>
